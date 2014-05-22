@@ -110,6 +110,10 @@ function validName(name) {
 	return /^[a-zA-Z0-9_\-.]+$/.test(name)
 }
 
+function error500(res, err) {
+	res.json(500, {'status': 'error', 'error': err, 'message': err.toString('utf-8')})
+}
+
 app.get('/snapshot', function(req, res) {
 	listSnapshots(req.user, function(err, list) {
 		if(err) {
@@ -179,6 +183,36 @@ app.post('/alias', function(req, res) {
 			return
 		}
 		res.json({'status': 'success'})
+	})
+})
+
+app.put('/alias', function(req, res) {
+	if(!validName(req.body.source)) {
+		res.json(406, {'status': 'error', 'error': 'invalid name'})
+		return
+	}
+
+	if(!validName(req.body.target)) {
+		res.json(406, {'status': 'error', 'error': 'invalid target'})
+		return
+	}
+
+	var path = '/' + repos[repo].fs + '/.alias/' + name;
+	fs.exists(path, function(exist) {
+		if (exists) {
+			if(err) {
+				return error500(res, err);
+			} else {
+				destroyAlias(req.user, req.body.name, function(err, list) {
+					if(err) {
+						return error500(res, err);
+					}
+					return app.post('/alias', req, res);
+				})
+			}
+		} else {
+			return app.post('/alias', req, res);
+		}
 	})
 })
 
